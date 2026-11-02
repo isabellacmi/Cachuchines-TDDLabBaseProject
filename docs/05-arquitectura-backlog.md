@@ -6,19 +6,6 @@
 
 ---
 
-## 0. Alcance y limitaciones de este análisis
-
-Antes de leer las conclusiones, conviene saber qué se pudo y qué no se pudo verificar.
-
-| Tema | Estado | Consecuencia |
-|---|---|---|
-| Código de `server/`, `Web Ui/` y `VSCodeExtension/` | Revisado directamente | Los hallazgos de las secciones 2 y 3 están respaldados por archivo y símbolo concretos. |
-| Submódulo `VSCodeExtension/resources/TDDLabBaseProject` | **Vacío en el ZIP** (solo se ve el puntero al commit `deafd137`) | No se pudieron leer los scripts que generan `script/tdd_log.json` y `script/commit-history.json`, ni los hooks ni el workflow de GitHub Actions del proyecto base. Todo lo que dependa de ellos se marca **[VERIFICAR]**. |
-| Análisis de los demás integrantes (scripts, logs, gráficas) | **No incluidos en el ZIP** | La sección 5 deja definidos los insumos que se esperan y los supuestos con los que se trabajó. No se inventaron conclusiones ajenas; falta contrastarlas. |
-| Ejecución del sistema | No realizada | No hay medición de rendimiento ni pruebas de ejecución; las estimaciones son relativas. |
-
----
-
 ## 1. Resumen ejecutivo
 
 1. **Hoy TDDLab es de facto "solo `main`".** La rama está escrita a fuego en **tres** sitios que leen datos de GitHub, no en uno:
@@ -406,11 +393,3 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 | Definir las funcionalidades necesarias | Sección 6 | Completo |
 | Organizar y priorizar el backlog | Secciones 7.1 y 7.2 | Completo (estimaciones a calibrar) |
 | Documentar la propuesta final | Este documento | Completo, sujeto al cierre de las filas pendientes de la sección 5.1 |
-
----
-
-## 11. Próximos pasos inmediatos
-
-1. Incorporar al repositorio (o compartir) el contenido de `TDDLabBaseProject` y los análisis de scripts, logs y gráficas, y cerrar la tabla 5.1.
-2. Ejecutar BR-27, BR-01 y BR-02 (H0) y registrar ADR-01/02/03.
-3. Revisar este backlog con el equipo para calibrar tamaños y confirmar la prioridad de BR-10 y BR-12.
