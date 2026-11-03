@@ -76,6 +76,44 @@
     "conclusion": "success"
   },
   {
+    "sha": "e2a9e0afebc5e505b077ea230b82a4c12392c636",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:35:31.000Z",
+      "message": "feat: agregar multiplicador con positivos y cero para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/e2a9e0afebc5e505b077ea230b82a4c12392c636"
+    },
+    "stats": {
+      "total": 6,
+      "additions": 6,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 6,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "31a7921a0375d6f66e4eda407e894b917ec6c3a3",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:35:51.000Z",
+      "message": "test: verificar multiplicacion de negativos para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/31a7921a0375d6f66e4eda407e894b917ec6c3a3"
+    },
+    "stats": {
+      "total": 2,
+      "additions": 2,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 7,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
     "sha": "04dd5bdd2398a6ce0f8a5b063c48674535e95e43",
     "author": "andresrev070303",
     "commit": {
@@ -95,12 +133,12 @@
     "conclusion": "success"
   },
   {
-    "sha": "HEAD",
+    "sha": "0be805da767870ce53f208ae6fcd8f2d58827acd",
     "author": "andresrev070303",
     "commit": {
       "date": "2026-11-03T03:40:21.000Z",
       "message": "Merge feature/restador into main for HU02",
-      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/0be805da767870ce53f208ae6fcd8f2d58827acd"
     },
     "stats": {
       "total": 8,
@@ -110,6 +148,25 @@
     },
     "coverage": 100,
     "test_count": 8,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "HEAD",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:44:54.000Z",
+      "message": "Merge feature/multiplicador into main for HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 8,
+      "additions": 8,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 11,
     "failed_tests": 0,
     "conclusion": "success"
   }

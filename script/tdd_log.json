@@ -72,6 +72,42 @@
     "testId": 3
   },
   {
+    "numPassedTests": 4,
+    "failedTests": 2,
+    "numTotalTests": 6,
+    "timestamp": 1793676917402,
+    "success": false,
+    "testId": 2
+  },
+  {
+    "numPassedTests": 6,
+    "failedTests": 0,
+    "numTotalTests": 6,
+    "timestamp": 1793676928333,
+    "success": true,
+    "testId": 2
+  },
+  {
+    "commitId": "e2a9e0afebc5e505b077ea230b82a4c12392c636",
+    "commitName": "feat: agregar multiplicador con positivos y cero para HU02",
+    "commitTimestamp": 1793676932823,
+    "testId": 2
+  },
+  {
+    "numPassedTests": 7,
+    "failedTests": 0,
+    "numTotalTests": 7,
+    "timestamp": 1793676948861,
+    "success": true,
+    "testId": 3
+  },
+  {
+    "commitId": "31a7921a0375d6f66e4eda407e894b917ec6c3a3",
+    "commitName": "test: verificar multiplicacion de negativos para HU02",
+    "commitTimestamp": 1793676953088,
+    "testId": 3
+  },
+  {
     "numPassedTests": 5,
     "failedTests": 0,
     "numTotalTests": 5,
@@ -94,9 +130,23 @@
     "testId": 3
   },
   {
-    "commitId": "HEAD",
+    "commitId": "0be805da767870ce53f208ae6fcd8f2d58827acd",
     "commitName": "Merge feature/restador into main for HU02",
     "commitTimestamp": 1793677233843,
     "testId": 3
+  },
+  {
+    "numPassedTests": 11,
+    "failedTests": 0,
+    "numTotalTests": 11,
+    "timestamp": 1793677483159,
+    "success": true,
+    "testId": 4
+  },
+  {
+    "commitId": "HEAD",
+    "commitName": "Merge feature/multiplicador into main for HU02",
+    "commitTimestamp": 1793677498313,
+    "testId": 4
   }
 ]
