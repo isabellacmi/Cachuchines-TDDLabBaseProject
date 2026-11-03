@@ -38,12 +38,50 @@
     "conclusion": "success"
   },
   {
-    "sha": "HEAD",
+    "sha": "4d637f3a98fb72e4c765251125b0fcce83e8741c",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:31:59.000Z",
+      "message": "feat: agregar restador con positivos y negativos para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/4d637f3a98fb72e4c765251125b0fcce83e8741c"
+    },
+    "stats": {
+      "total": 6,
+      "additions": 6,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 6,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "5ab01590bb2fbf6c337217803126bb91b6cbc127",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:32:14.000Z",
+      "message": "test: verificar resta de decimales para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/5ab01590bb2fbf6c337217803126bb91b6cbc127"
+    },
+    "stats": {
+      "total": 2,
+      "additions": 2,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 7,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "04dd5bdd2398a6ce0f8a5b063c48674535e95e43",
     "author": "andresrev070303",
     "commit": {
       "date": "2026-11-03T03:36:08.000Z",
       "message": "test: verificar suma con signos diferentes para HU02",
-      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/04dd5bdd2398a6ce0f8a5b063c48674535e95e43"
     },
     "stats": {
       "total": 2,
@@ -53,6 +91,25 @@
     },
     "coverage": 100,
     "test_count": 5,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "HEAD",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:40:21.000Z",
+      "message": "Merge feature/restador into main for HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 8,
+      "additions": 8,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 8,
     "failed_tests": 0,
     "conclusion": "success"
   }

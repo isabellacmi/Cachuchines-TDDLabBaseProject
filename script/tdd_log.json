@@ -36,6 +36,42 @@
     "testId": 1
   },
   {
+    "numPassedTests": 4,
+    "failedTests": 2,
+    "numTotalTests": 6,
+    "timestamp": 1793676711215,
+    "success": false,
+    "testId": 2
+  },
+  {
+    "numPassedTests": 6,
+    "failedTests": 0,
+    "numTotalTests": 6,
+    "timestamp": 1793676716387,
+    "success": true,
+    "testId": 2
+  },
+  {
+    "commitId": "4d637f3a98fb72e4c765251125b0fcce83e8741c",
+    "commitName": "feat: agregar restador con positivos y negativos para HU02",
+    "commitTimestamp": 1793676720510,
+    "testId": 2
+  },
+  {
+    "numPassedTests": 7,
+    "failedTests": 0,
+    "numTotalTests": 7,
+    "timestamp": 1793676731394,
+    "success": true,
+    "testId": 3
+  },
+  {
+    "commitId": "5ab01590bb2fbf6c337217803126bb91b6cbc127",
+    "commitName": "test: verificar resta de decimales para HU02",
+    "commitTimestamp": 1793676735756,
+    "testId": 3
+  },
+  {
     "numPassedTests": 5,
     "failedTests": 0,
     "numTotalTests": 5,
@@ -44,9 +80,23 @@
     "testId": 2
   },
   {
-    "commitId": "HEAD",
+    "commitId": "04dd5bdd2398a6ce0f8a5b063c48674535e95e43",
     "commitName": "test: verificar suma con signos diferentes para HU02",
     "commitTimestamp": 1793676970127,
     "testId": 2
+  },
+  {
+    "numPassedTests": 8,
+    "failedTests": 0,
+    "numTotalTests": 8,
+    "timestamp": 1793677204290,
+    "success": true,
+    "testId": 3
+  },
+  {
+    "commitId": "HEAD",
+    "commitName": "Merge feature/restador into main for HU02",
+    "commitTimestamp": 1793677233843,
+    "testId": 3
   }
 ]
