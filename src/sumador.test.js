@@ -11,3 +11,8 @@ describe("Sumar", () => {
 describe("Sumador HU02 en main", () => {
   it("suma con cero", () => expect(sumar(0, 8)).toBe(8));
 });
+
+describe("Sumador HU02 signos y decimales", () => {
+  it("suma negativos", () => expect(sumar(-3, -2)).toBe(-5));
+  it("suma decimales", () => expect(sumar(0.1, 0.2)).toBeCloseTo(0.3));
+});
