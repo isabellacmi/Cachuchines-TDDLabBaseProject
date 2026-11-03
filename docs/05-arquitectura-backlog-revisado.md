@@ -1,8 +1,25 @@
 # 05 — Arquitectura y backlog: soporte de ramas Git en TDDLab
 
-**Rol:** equipo de desarrollo responsable de la evolución de TDDLab
+**Rol:** Isabella Catherine Montes Iñiguez - Scrum Master
 **Objetivo:** identificar los componentes afectados por el soporte de ramas Git, consolidar los análisis y definir un backlog priorizado, sin afectar el funcionamiento actual.
 **Base de análisis:** repositorio `TDDLab` (carpetas `server/`, `Web Ui/`, `VSCodeExtension/`, `.github/`), rama `main`, estado al 02/11/2026.
+
+---
+
+## 0. Alcance y limitaciones de este análisis
+
+Este documento integra la inspección de la plataforma TDDLab con los cuatro aportes complementarios disponibles en el paquete del Sprint 3. Se distingue entre **estado actual comprobado**, **resultado de prueba**, **propuesta** y **pendiente de validación** para no presentar diseños futuros como funcionalidades implementadas.
+
+| Insumo | Estado y alcance | Cómo se utiliza aquí |
+|---|---|---|
+| Código de `server/`, `Web Ui/` y `VSCodeExtension/` | Revisado directamente en el análisis de arquitectura. | Sustenta el diagnóstico de la plataforma y sus componentes afectados. |
+| Proyecto base `Cachuchines-TDDLabBaseProject` | Analizado por el integrante 2; incluye scripts, hooks, configuración Git y workflow. | Se incorporan sus hallazgos y la prueba de concepto de corrección de logs. |
+| Análisis de gráficas y visualización por rama | Aporte del integrante 3, con inspección estática de la plataforma y del proyecto base. | Se incorporan el diagnóstico de las gráficas, los modos de consulta y las reglas para evitar comparaciones engañosas. |
+| Diseño de base de datos y API | Aporte del integrante 4. El proyecto base fue inspeccionado; el esquema y los contratos reales de la plataforma requieren validación directa. | Se adopta como dirección la implementación en dos etapas: fotografía Git primero y persistencia relacional después, si el requisito lo exige. |
+| Análisis del primer integrante | Incluido directamente en `SPRINT 3 CACHUCHINES.pdf`, no como archivo `.md`. | Se incorpora el experimento con `main`, `feature/restador` y `feature/multiplicador`, los resultados de 12 ejecuciones y 9 commits, y los problemas observados en gráficas y logs. |
+| Ejecución integral de la plataforma | No realizada como parte de este documento. | Las pruebas de concepto del integrante 2 no equivalen a pruebas de integración de la plataforma completa. |
+
+**Limitaciones que siguen vigentes:** el submódulo `VSCodeExtension/resources/TDDLabBaseProject` aparece vacío en el ZIP de la plataforma, por lo que no se pudo inspeccionar desde esa copia. Los análisis 02 y 04 sí aportan evidencia del proyecto base en sus propios repositorios/copia de trabajo. El esquema PostgreSQL, ORM, migraciones, cardinalidades y políticas de autorización de la plataforma deben confirmarse directamente antes de implementar cambios de persistencia o endpoints nuevos. Las propuestas de este documento no significan que ya estén implementadas.
 
 ---
 
@@ -21,7 +38,7 @@
 
 4. **Propuesta.** Introducir un concepto único y compartido, **`RepositoryRef = { owner, repo, branch? }`**, y propagarlo como parámetro **opcional** a lo largo de la cadena frontend → backend → GitHub. Si `branch` no viene, el comportamiento es **idéntico al actual** (`main`). La funcionalidad se activa tras un **feature flag** (el repo ya tiene módulo de feature flags) y se protege con una **suite de regresión "sin rama"** que se construye **antes** de tocar código.
 
-5. **Riesgo principal (a validar, no a suponer):** la calidad de los datos por rama. Si el script/hook del proyecto base no registra la rama, no se dispara el workflow en ramas distintas de `main`, o los merges/rebases corrompen `tdd_log.json`, la interfaz podrá seleccionar rama pero mostrará datos vacíos o engañosos. Por eso el backlog empieza con spikes sobre el proyecto base.
+5. **El riesgo de datos por rama ya fue demostrado en el proyecto base.** El integrante 2 comprobó que los logs no registran rama, que la resolución diferida de `HEAD` falla con operaciones no lineales y que el CI solo se dispara con el alcance configurado. En la batería comparativa, el código actual tuvo conflictos en 4 de 6 escenarios y 4 de 10 registros de `main` quedaron con SHA incorrecto. Una prueba de concepto de la propuesta resolvió esos seis escenarios sin conflictos ni registros incorrectos; falta integrar y validar esos cambios en el repositorio compartido y en la plataforma.
 
 ---
 
@@ -193,23 +210,26 @@ flowchart LR
 
 ### 4.3 Resolución de rama y compatibilidad
 
+La consulta de una rama seleccionada no debe cambiar silenciosamente a otra rama. La recomendación consolidada es:
+
+1. Si el consumidor antiguo no envía rama, conserva el comportamiento legado mientras se migra el flujo.
+2. Si el consumidor nuevo envía `branch`, se valida y se resuelve exactamente `refs/heads/<branch>`.
+3. Si la rama no existe o no es accesible, se devuelve un error explícito; no se sustituye por `main` ni por `default_branch`.
+4. Si la rama existe, pero no contiene uno de los archivos de log, la respuesta identifica ese archivo como `missing`; un archivo válido vacío se representa como `ok` con `records: []`.
+5. Para evitar leer dos estados diferentes de una rama que avanza mientras se consulta, el backend resuelve primero un SHA (`resolvedSha`) y obtiene **ambos JSON desde esa misma revisión**.
+
 ```mermaid
 flowchart TD
-  A["Petición de datos"] --> B{"¿Viene branch?"}
-  B -- No --> C["Usar main<br/>(comportamiento actual)"]
-  B -- Sí --> D{"¿Flag branch_support activo?"}
-  D -- No --> C
-  D -- Sí --> E{"¿Nombre válido?<br/>(check-ref-format)"}
-  E -- No --> F["400 Bad Request"]
-  E -- Sí --> G["Usar la rama indicada"]
-  C --> H{"¿Archivo existe?"}
-  G --> H
-  H -- Sí --> I["Respuesta con la misma forma de siempre"]
-  H -- "No (404) y no se indicó rama" --> J["Probar default_branch del repo"]
-  J --> K{"¿Existe?"}
-  K -- Sí --> I
-  K -- No --> L["Mismo manejo de error actual"]
-  H -- "No (404) y se indicó rama" --> M["404 con mensaje:<br/>'sin datos TDD en esa rama'"]
+  A[Solicitud de visualización] --> B{¿Consumidor legado sin rama?}
+  B -- Sí --> C[Conservar ruta y comportamiento legado]
+  B -- No --> D[Validar nombre y permisos]
+  D --> E{¿Rama existe?}
+  E -- No --> F[404 / BRANCH_NOT_FOUND]
+  E -- Sí --> G[Resolver una vez la rama a resolvedSha]
+  G --> H[Leer tdd_log.json y commit-history.json en ese SHA]
+  H --> I{¿Archivos válidos?}
+  I -- Sí / alguno falta --> J[Devolver fotografía con estado por archivo]
+  I -- JSON inválido / fallo --> K[Error explícito; no convertirlo en lista vacía]
 ```
 
 ### 4.4 Decisiones de arquitectura (ADR resumidos)
@@ -227,29 +247,30 @@ flowchart TD
 
 | Opción | Descripción | Evaluación |
 |---|---|---|
-| **A. Foto por rama** | Cada rama contiene su propio `tdd_log.json` / `commit-history.json` (lo que ya ocurre al versionarlos); el backend lee el archivo **de esa rama**. | Compatible con el formato actual; sin migración. Riesgo: conflictos al fusionar → mitigado con normalizador (BR-16). |
+| **A. Foto por rama** | Cada rama contiene su propio `tdd_log.json` / `commit-history.json` (lo que ya ocurre al versionarlos); el backend lee ambos archivos desde un mismo SHA de esa rama. | Compatible con el formato actual; sin migración. Los conflictos de integración se abordan con el driver JSON de tres vías y la protección de hooks (BR-16). |
 | B. Archivos por rama (`script/branches/<slug>/…`) | Evita conflictos de merge. | Cambia el contrato de archivos del proyecto base y de la extensión; rompe a los lectores actuales. |
 
-**Recomendación:** **A**, y pasar a B solo si el spike BR-01 muestra una tasa alta de conflictos.
+**Recomendación:** **A** para el MVP de consulta. La prueba de concepto del integrante 2 aborda los conflictos del formato versionado; pasar a B solo si la integración demuestra que el driver no es suficiente.
 
-**ADR-03 — Cómo se pide el archivo a GitHub por rama**
+**ADR-03 — Cómo se consulta una rama y sus archivos**
 
-Candidatos: (1) `raw.githubusercontent.com/<o>/<r>/refs/heads/<rama>/script/…` y (2) Contents API `GET /repos/<o>/<r>/contents/script/…?ref=<rama>` (con el token ya configurado en el servidor). Los nombres con `/` hacen ambigua la URL "corta" de raw. **Decisión pendiente del spike BR-02**; en ambos casos se codifica cada segmento y se rechaza cualquier nombre que no pase la validación (BR-05) para evitar manipulación de la ruta.
+Se recomienda que el backend utilice una operación de fotografía de rama: valida la ref, resuelve una vez el SHA y lee `tdd_log.json` y `commit-history.json` en esa revisión. El mecanismo interno (Contents API u otra API de GitHub) se decide durante la implementación y debe probar nombres con `/`, permisos, límites de tasa y acceso al SHA resuelto. No se debe concatenar el nombre de rama sin codificación ni permitir que el cliente determine rutas arbitrarias.
 
-**ADR-04 — `tdd_log.json` pasa por el backend**
+**ADR-04 — Contrato de API para la fotografía de rama**
 
-Eliminar la lectura directa desde el navegador (H2) para tener un único punto de validación, resolución de rama y caché. Se mantiene la ruta directa como *fallback* con flag apagado, de modo que el comportamiento actual no cambia hasta activar la funcionalidad.
+Se recomienda añadir `GET /TDDCycles/branches` para el selector y `GET /TDDCycles/branch-snapshot?owner=...&repoName=...&branch=...` para la consulta coherente. Son endpoints **propuestos**, no existentes. La respuesta de fotografía incluye `ref`, `resolvedSha` y estado independiente de cada archivo. Las rutas legadas se conservan durante la migración; no se cambia su forma de respuesta sin una decisión explícita. La lectura directa desde navegador puede retirarse gradualmente cuando el nuevo consumidor esté validado.
 
 ### 4.5 Estrategia de compatibilidad con proyectos que no usan ramas
 
-1. **Contrato aditivo.** `branch` es siempre opcional en query string. La forma de la respuesta (array) **no cambia**; no se envuelve en un objeto.
-2. **Valor por defecto = hoy.** Sin `branch` se usa `main`, igual que ahora. Solo si responde 404 se intenta `default_branch` (esto únicamente puede **mejorar** casos que hoy fallan, como repos con `master`).
-3. **Campos nuevos opcionales** (`branch`, `parents`) en los JSON. Los lectores actuales los ignoran; si faltan, la entrada se considera de la rama por defecto.
-4. **Enlaces existentes** (`github.com/u/r`) se interpretan sin rama; no se reescriben ni se migran.
-5. **Feature flag `branch_support`.** Apagado: la UI no muestra selector y el adaptador usa exactamente las rutas actuales. Se activa por etapas (equipo → un grupo → todos).
+1. **Contrato aditivo para rutas existentes.** `branch` se propaga como parámetro opcional y las respuestas legadas conservan su forma. El endpoint nuevo `branch-snapshot` tiene un contrato propio, con `resolvedSha` y estados por archivo.
+2. **Sin fallback silencioso.** Los consumidores legados conservan temporalmente su comportamiento actual. Cuando se solicita una rama explícita, se consulta esa rama y, si no existe o no contiene logs, se informa el estado; no se cambia a `main` ni a `default_branch` sin que el usuario lo solicite.
+3. **Campos nuevos opcionales** (`branch`, `recordId`, `headSha`, `parents`, `authorTimestamp` y, cuando aplique, `rewrittenFrom`) en los JSON. Los lectores actuales pueden ignorarlos; su incorporación debe mantener compatibilidad con registros históricos.
+4. **Enlaces existentes** (`github.com/u/r`) se interpretan sin rama; no se reescriben ni se migran. Los enlaces con `/tree/<rama>` requieren parser único y validación de rama.
+5. **Feature flag `branch_support`.** Apagado: la UI no muestra selector y se conserva el flujo legado. Se activa por etapas (equipo → un grupo → todos).
 6. **UI sin cambios visibles** cuando el repositorio solo tiene una rama (el selector se oculta).
-7. **Red de seguridad:** suite de regresión "sin rama" (BR-27) que debe estar en verde **antes y después** de cada PR de este épico.
-8. **Reversión:** apagar el flag restaura el comportamiento anterior sin despliegue.
+7. **Fotografía coherente:** el endpoint nuevo resuelve `resolvedSha` una sola vez y lee ambos JSON desde esa revisión; no atribuye a una rama registros históricos cuyo origen no se conoce.
+8. **Red de seguridad:** suite de regresión "sin rama" (BR-27) que debe estar en verde **antes y después** de cada PR de este épico.
+9. **Reversión:** apagar el flag restaura el comportamiento anterior sin despliegue.
 
 ### 4.6 Seguridad y rendimiento
 
@@ -264,25 +285,40 @@ Eliminar la lectura directa desde el navegador (H2) para tener un único punto d
 
 ### 5.1 Estado de la consolidación
 
-Los análisis de los demás integrantes **no estaban en el material entregado**. Para no bloquear la planificación, se fijan aquí los **insumos esperados**, el **supuesto de trabajo** y la **decisión que depende de ellos**. Cada fila debe cerrarse (confirmar o corregir) en la próxima reunión de equipo.
+Los cinco aportes ya están disponibles: el primero está integrado en la presentación PDF y los cuatro restantes están en documentos Markdown. La siguiente tabla resume qué evidencia aporta cada uno y qué decisión modifica en esta arquitectura.
 
-| Análisis esperado | Qué debe aportar | Decisión que depende de él | Supuesto usado en este documento | Ítems afectados |
-|---|---|---|---|---|
-| **Scripts** (generación de `tdd_log.json`, `commit-history.json`, hooks) | Formato real de entradas; qué hook/evento escribe cada archivo; si captura rama; comportamiento con rebase/merge | ADR-02, campos nuevos opcionales | Los scripts viven en el proyecto base y no registran rama hoy. | BR-01, BR-14, BR-16 |
-| **Logs** (estructura y ciclo de vida de los archivos) | Cómo se acumulan entradas, qué pasa en conflictos, tamaño | Política de normalización y caché | `tdd_log.json` es un array que solo crece y se versiona en Git. | BR-16, BR-11 |
-| **Gráficas** (qué se calcula y cómo se agrupa) | Qué métricas dependen del orden/índice; qué esperan ver con varias ramas | Modo de visualización (una rama vs. todas) | Una rama a la vez es suficiente para el MVP. | BR-22, BR-24 |
-| **CI / GitHub Actions** | Disparadores del workflow del proyecto base; dónde se publica la cobertura | Si hay datos de cobertura por rama | El workflow hoy no corre en ramas distintas de `main`. | BR-15 |
+| Aporte | Hallazgos/evidencia relevante | Consecuencia para la arquitectura | Ítems afectados |
+|---|---|---|---|
+| **Integrante 1 — experimento con ramas** (presentación PDF) | Se probaron `main`, `feature/restador` y `feature/multiplicador`: 12 ejecuciones y 9 commits. Los logs no incluyen rama; ambas features reutilizan `testId 2`; al volver a `main` el log baja de 10 a 5 entradas; ambos JSON presentan conflictos al fusionar. La presentación también reporta que las gráficas leen `main` y mezclan ramas, que `npm test` devuelve 0 aun con fallos y que una transformación omite 2 de 12 ejecuciones. | Confirma el problema de trazabilidad, pérdida/conflicto de registros y visualización no aislada por rama. Se debe separar rama de origen, commit observado e identidad de ejecución. | BR-14, BR-16, BR-19, BR-22, BR-27, BR-28 |
+| **Integrante 2 — scripts y logs** (`02-analisis-scripts-logs.md`) | Identifica productores, estructura y hooks. El código actual tuvo conflictos en 4/6 escenarios y 4/10 registros de `main` con SHA incorrecto. La prueba de concepto con `recordId`, `branch`, `headSha`, `parents`, resolución de reescrituras, driver JSON de tres vías y protección de hooks completó los seis escenarios sin conflictos y con cero registros incorrectos. También detectó ejecución duplicada de Jest y registros falsamente verdes si falla antes de generar el reporte. | La propuesta de origen no debe limitarse a añadir `branch`: necesita identidad estable, SHA observado y manejo de reescrituras/merges. El workflow debe ejecutarse en todas las ramas. La prueba de concepto está validada en copia aislada, no integrada aún. | BR-01, BR-14, BR-15, BR-16, BR-27, BR-28 |
+| **Integrante 3 — gráficas** (`03-analisis-graficas.md`) | Las gráficas leen datos de `main`; hay unión por índice/orden que puede desalinearse. Propone tres modos: una rama, todas las ramas y comparación. Advierte que `testId` no es identidad global, que commits compartidos no deben contarse dos veces y que cobertura/ausencia/errores deben diferenciarse. | MVP: visualización de una rama con identidad de datos y estado explícito. Después, todas las ramas y comparación, con reglas semánticas y series separadas. La comparación no debe sumar porcentajes ni convertir datos ausentes en cero. | BR-19 a BR-24, BR-31, BR-32 |
+| **Integrante 4 — base de datos y API** (`04-diseno-base-datos-api.md`) | El proyecto base no contiene API ni BD local; la plataforma y su esquema relacional no pudieron validarse desde ese repositorio. Recomienda dos etapas: fotografía Git coherente y, si el alcance lo exige, persistencia relacional posterior. Ambos JSON deben leerse desde el mismo SHA; registros históricos ambiguos permanecen con origen desconocido. | Se adopta fotografía por rama como primera etapa. La migración de BD no es requisito técnico automático: primero se inspeccionan esquema, cardinalidades, ORM, migraciones, permisos y criterio de aceptación. | BR-02, BR-09, BR-10, BR-12, BR-31 |
+| **Integrante 5 — arquitectura y backlog** (este documento) | Identifica puntos de lectura fija en `main`, parser de enlaces duplicado, lectura directa del log desde frontend, asistente IA, vista docente y extensión. | Centralizar `RepositoryRef`, mantener compatibilidad legada y coordinar backend, frontend, extensión y asistente. | BR-04 a BR-13, BR-17 a BR-30 |
+
+**Aclaración de evidencia:** los experimentos de los integrantes 1 y 2 son pruebas sobre el proyecto base/copia aislada. El análisis de gráficas del integrante 3 es principalmente inspección estática y propuesta visual. El integrante 4 formula un diseño de API/BD; no ejecutó migraciones ni validó el esquema real de la plataforma. Ninguno de estos aportes demuestra que el soporte multi-rama esté implementado en TDDLab.
 
 ### 5.2 Propuestas consolidadas
 
-| Propuesta | Origen | Estado |
+| Propuesta consolidada | Origen | Estado y decisión |
 |---|---|---|
-| Introducir `RepositoryRef` compartido | Análisis de arquitectura (este documento) | Propuesta principal |
-| Parámetro `branch` opcional + fallback a `main` | Arquitectura | Propuesta principal |
-| Rama dentro del enlace (`/tree/<rama>`) | Arquitectura | Pendiente de confirmar (ADR-01) |
-| Campo `branch`/`parents` en JSON | Scripts/Logs | **Pendiente de los demás análisis** |
-| Normalizador post-merge | Scripts/Logs | **Pendiente de los demás análisis** |
-| Modo "todas las ramas" en gráficas | Gráficas | **Pendiente**; se deja como backlog *Could* |
+| Introducir `RepositoryRef = { owner, repo, branch? }` y un parser único | Integrante 5 | Propuesta de arquitectura; requiere implementación y pruebas compartidas frontend/backend. |
+| Mantener el comportamiento legado cuando no se envía rama | Integrante 5 + 4 | Recomendado para compatibilidad; no usar fallback silencioso cuando se solicita una rama explícita. |
+| Registrar `branch`, `recordId`, `headSha`, `parents`, `authorTimestamp` y trazabilidad de reescrituras | Integrante 2; respaldado por 1 y 3 | Diseño y prueba de concepto en copia aislada; pendiente integrar en el proyecto base. |
+| Resolver conflictos JSON con driver de tres vías y proteger hooks durante rebase/cherry-pick | Integrante 2 | Prueba de concepto positiva; requiere revisión e integración en el repositorio compartido. No usar `merge=union` para arrays JSON. |
+| Ejecutar CI en `push` de todas las ramas | Integrante 2 | Cambio propuesto con evidencia del workflow actual; pendiente integración. |
+| Unir ejecuciones y commits por identidad/SHA, no por índice ni solo por `testId` | Integrantes 2 y 3 | Requisito funcional para evitar cruces; requiere definir tratamiento de datos históricos sin identidad. |
+| Consultar una rama mediante fotografía con `resolvedSha` común para ambos JSON | Integrante 4 | Dirección recomendada para API nueva; contrato y permisos pendientes de validar en plataforma. |
+| Selector de rama y modos una/todas/comparar | Integrante 3 | Selector de una rama para MVP; todos/comparar quedan como evolución posterior. |
+| Persistencia relacional de proyectos, ramas, commits y ejecuciones | Integrante 4 | Segunda etapa condicional; no aprobar migración hasta inspeccionar esquema y confirmar requisito de historial persistente. |
+| Mantener coherencia entre gráficas, asistente IA, vista docente y extensión | Integrante 5 | Requisito transversal; implementación por épicos y feature flag. |
+
+### 5.3 Decisiones que requieren acuerdo del equipo
+
+1. Confirmar si el criterio de aceptación exige únicamente consulta por rama o también historial persistente tras borrar una rama. Esta decisión determina si la etapa 2 de base de datos es obligatoria.
+2. Definir qué significa exactamente una ejecución: rama donde se ejecutó, SHA observado, estado del árbol de trabajo y si cambió durante la ejecución. Un SHA por sí solo no describe cambios no commiteados.
+3. Definir la política de deduplicación de registros heredados. Los registros antiguos sin `recordId` ni SHA fiable no deben fusionarse ni atribuirse automáticamente a `main`.
+4. Acordar si el MVP incluye solo una rama por consulta. Se recomienda dejar “todas las ramas” y “comparar ramas” para una iteración posterior.
+5. Verificar el contrato real de autenticación/autorización y la estructura de la base de datos de la plataforma antes de añadir endpoints o migraciones.
 
 ---
 
@@ -290,11 +326,11 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 
 | Épico | Funcionalidad | Resultado observable |
 |---|---|---|
-| **E0** Descubrimiento y decisiones | Verificar el proyecto base, el acceso a archivos por rama y cerrar ADR-01/02/03 | Contratos de datos y decisiones documentadas |
+| **E0** Descubrimiento y decisiones | Verificar la integración de la prueba de concepto, el acceso a archivos por rama y cerrar ADR-01/02/03/04 | Contratos de datos y decisiones documentadas |
 | **E1** Núcleo compartido | `RepositoryRef`, validador de rama, feature flag | Un único lugar que entiende "repositorio + rama" |
-| **E2** Backend | Resolución de rama, endpoints con `branch`, listado de ramas, proxy de `tdd_log`, caché, validación de entrega | API capaz de servir datos por rama sin cambiar la forma de respuesta |
+| **E2** Backend | Listado de ramas y endpoint de fotografía; resolución única a `resolvedSha`; lectura de ambos JSON en la misma revisión; caché y validación | API capaz de servir una fotografía coherente por rama, con estados explícitos por archivo |
 | **E3** Scripts, CI y extensión | Registrar rama en logs, CI en todas las ramas, normalizador, rama visible en VS Code | Datos fiables por rama en origen |
-| **E4** Frontend | Selector de rama, hooks/adapter con `branch`, unión por `sha`, formularios de enlace, vista docente | El usuario elige rama y ve sus gráficas |
+| **E4** Frontend | Selector de rama, consumo de fotografía, unión por identidad/SHA, formularios de enlace y vista docente | El usuario elige una rama y ve sus gráficas sin mezclar registros; modos avanzados se planifican aparte |
 | **E5** Asistente de IA | Análisis sobre la rama de la entrega | La IA y la gráfica muestran los mismos datos |
 | **E6** Calidad y despliegue | Regresión "sin rama", pruebas por capa, e2e, rollout y documentación | Cambio seguro y reversible |
 
@@ -311,45 +347,47 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 | **BR-27** | E6 | Suite de regresión "sin rama": pruebas de contrato de `/commits-history` y `/commit-cycles` y snapshot del flujo de gráficas sin `branch` | **M** | M | — | Corre en CI; pasa en `main` actual; es requisito de merge de todo el épico. |
 | **BR-01** | E0 | ◆ Spike: inspeccionar `TDDLabBaseProject` (scripts, hooks, workflow) y documentar formato real de los JSON | **M** | S | — | Documento con formato, eventos que escriben cada archivo, disparadores del workflow y comportamiento con merge/rebase. |
 | **BR-02** | E0 | Spike: acceso por rama a GitHub (raw con `refs/heads/` vs Contents API `?ref=`), nombres con `/`, límites de tasa | **M** | S | — | Prueba con rama `feature/x`; decisión ADR-03 registrada. |
-| **BR-03** | E0 | Cerrar ADR-01 y ADR-02 con el equipo | **M** | S | BR-01 | Decisiones firmadas en este documento. |
+| **BR-03** | E0 | Cerrar ADR-01, ADR-02, ADR-03 y ADR-04 con el equipo | **M** | S | BR-01, BR-02 | Decisiones y contrato de fotografía aprobados por el equipo. |
 | **BR-04** | E1 | Módulo `RepositoryRef` (parse/serialize de `github.com/o/r[/tree/<rama>]`), versión backend y frontend con los mismos casos de prueba | **M** | M | BR-03 | Casos: sin rama, rama simple, rama con `/`, URL con `.git`, trailing slash, `/tree/` sin rama → error claro. |
 | **BR-05** | E1 | Validador de nombre de rama (`check-ref-format`) separado de `isValidGithubSegment` | **M** | S | — | Rechaza `..`, espacios, `-x`, `a.lock`, longitud > 255; acepta `feature/login`. |
 | **BR-06** | E1 | Feature flag `branch_support` (BD + lectura en Web Ui) | **M** | S | — | Apagado por defecto; alternarlo cambia la UI sin despliegue. |
-| **BR-07** | E2 | `GithubRepository`: `branch?` en `fetchCommitHistoryJson`, `getCommitHistoryData`, `getCommitCyclesData`; actualizar `IGithubRepository`; fallback `main → default_branch` | **M** | M | BR-02, BR-04, BR-05 | Sin `branch` la URL es idéntica a la actual (test de BR-27). Con `branch` usa esa rama. |
+| **BR-07** | E2 | `GithubRepository`: resolver y leer archivos por ref/SHA; actualizar `IGithubRepository` para propagar la rama y la revisión | **M** | M | BR-02, BR-04, BR-05 | Sin rama, el flujo legado se conserva. Con rama explícita, se consulta esa rama; si no existe, se informa error sin fallback silencioso. |
 | **BR-08** | E2 | `TDDCyclesController`/rutas: query `branch` opcional en `/commits-history` y `/commit-cycles` | **M** | S | BR-07 | 400 si el nombre es inválido; respuesta con la misma forma. |
 | **BR-09** | E2 | Endpoint `GET /TDDCycles/branches?owner&repoName` (paginado; devuelve `default` y lista) | **M** | M | BR-02 | Repos con más de 100 ramas paginan; error claro si el repo no existe. |
-| **BR-10** | E2 | Endpoint proxy `GET /TDDCycles/tdd-log?…&branch` y uso desde el adaptador (fallback directo con flag apagado) | **S** | M | BR-07, BR-06 | Con flag apagado, el adaptador usa la ruta actual; con flag encendido, el backend. |
+| **BR-10** | E2 | Endpoint nuevo `GET /TDDCycles/branch-snapshot?owner&repoName&branch` que resuelve un `resolvedSha` y obtiene ambos JSON desde esa revisión | **M** | L | BR-07, BR-09 | La respuesta informa `ref`, `resolvedSha` y estado independiente de `tdd_log.json` y `commit-history.json`; nunca mezcla revisiones ni convierte errores en arrays vacíos. |
 | **BR-11** | E2 | Caché TTL por `(owner, repo, branch)` | **S** | S | BR-07 | Segunda petición en TTL no llama a GitHub. |
 | **BR-12** | E2 | Entregas: validar que la rama exista al guardar el enlace | **S** | M | BR-04, BR-09 | Enlace sin rama: comportamiento actual. Con rama inexistente: error legible. |
 | **BR-13** | E2 | Endpoints legados (`getCommits`): parámetro `sha`/rama y paginación | **C** | S | BR-07 | Solo si se reactivan; no usados hoy. |
-| **BR-14** | E3 | ◆ Scripts de logs: campo opcional `branch` (y `parents`) en `commit-history.json` / `tdd_log.json` | **M** | M | BR-01, BR-03 | Los lectores actuales siguen funcionando con archivos viejos y nuevos. |
+| **BR-14** | E3 | ◆ Scripts de logs: agregar campos opcionales `branch`, `recordId`, `headSha`, `parents`, `authorTimestamp` y trazabilidad de reescrituras (`rewrittenFrom` cuando aplique) | **M** | M | BR-01, BR-03 | Los registros nuevos tienen identidad estable y contexto de ejecución/commit; los lectores antiguos siguen procesando logs históricos. |
 | **BR-15** | E3 | ◆ Workflow del proyecto base: ejecutar en `push` de todas las ramas | **M** | S | BR-01 | Commit en rama `feature/x` genera cobertura/conclusión visible. |
-| **BR-16** | E3 | ◆ Normalizador de `tdd_log.json` tras merge/rebase (deduplicar por identificador, ordenar por timestamp, validar JSON) | **S** | M | BR-01, BR-03 | Merge de dos ramas con entradas distintas deja JSON válido y sin duplicados. |
+| **BR-16** | E3 | ◆ Integrar y revisar la prueba de concepto: driver JSON de tres vías para ambos logs, deduplicación por `recordId`, protección del hook durante rebase/cherry-pick y resincronización post-rewrite | **M** | L | BR-01, BR-14 | En la batería acordada, merge/rebase/cherry-pick/stash pop conservan JSON válido y no duplican ni reasignan registros; la prueba de concepto existente se reproduce en el repositorio compartido. |
 | **BR-17** | E3 | Extensión: rama actual en la barra de estado, refresco al cambiar `.git/HEAD`, clave de caché del timeline por rama | **S** | M | — | Cambiar de rama actualiza el timeline sin recargar VS Code. |
 | **BR-18** | E3 | Extensión: acceso rápido a comandos de rama (crear/cambiar) y aviso si la rama inicial no es `main` | **C** | S | BR-17 | Menú/atajos; sin impacto en el flujo actual. |
 | **BR-19** | E4 | Puerto/adaptador y casos de uso con `branch?` (`CommitHistoryRepository`, `CommitHistoryAdapter`, `GetTDDLogs`, `GetCommitsOfRepo`, `GetCommitTddCycle`, `PortGetTDDCycles`, `fetchTDDVisualizationData`) | **M** | M | BR-08 | Llamadas sin `branch` idénticas a las actuales. |
 | **BR-20** | E4 | `useTDDChartPage`: leer `branch` de la query, incluirlo en dependencias del `useEffect` y conservarlo al navegar entre estudiantes | **M** | M | BR-04, BR-19 | Cambiar rama recarga datos; los botones anterior/siguiente respetan la rama de cada entrega. |
 | **BR-21** | E4 | Componente `BranchSelector` en `TDDChartPage` (oculto con flag apagado o una sola rama) | **M** | M | BR-06, BR-09, BR-20 | Muestra rama por defecto preseleccionada; accesible por teclado. |
-| **BR-22** | E4 | `TDDBoard`: unir commits y log por `sha`/`commitId` en vez de por índice; revisar la regex sobre `html_url` | **M** | M | BR-14 (parcial) | Con log que contiene commits ausentes de la historia, no se desalinean las pruebas. |
+| **BR-22** | E4 | `TDDBoard`: unir commits y registros por `recordId`/`headSha`/`sha`/`commitId` según tipo; eliminar la unión posicional y revisar la regex sobre `html_url` | **M** | M | BR-14 | Los registros identificados no se cruzan aunque falten commits en la historia; los históricos ambiguos se muestran como origen desconocido y no se fuerzan a una asociación. |
 | **BR-23** | E4 | Formularios de enlace: un único `useGitHubLinkValidation`, aceptar `/tree/<rama>` | **S** | M | BR-04 | Eliminada la duplicación; enlaces sin rama siguen aceptados igual. |
 | **BR-25** | E4 | Vista docente: mostrar la rama en `DeliveriesTable`/resumen de entrega | **S** | S | BR-04 | Entregas sin rama no muestran columna vacía confusa. |
-| **BR-24** | E4 | Modo "todas las ramas" en las gráficas (series por rama, indicador de merges) | **C** | L | BR-14, BR-22 | Solo tras validar con usuarios; fuera del MVP. |
+| **BR-24** | E4 | Modos avanzados "todas las ramas" y "comparar dos ramas", con commits comunes/exclusivos y reglas de agregación explícitas | **C** | L | BR-09, BR-14, BR-22, BR-31 | Series separadas; ancestros compartidos no se cuentan dos veces; no se promedian coberturas incompatibles ni se convierten ausencias en cero. Fuera del MVP. |
 | **BR-26** | E5 | `ChatbotAssistantRepository`: usar `RepositoryRef` y rama de la entrega; mencionar la rama en el prompt | **S** | S | BR-04, BR-07 | Sin rama: URL idéntica a la actual. |
 | **BR-28** | E6 | Pruebas unitarias por capa (backend, adaptador, hook, parser) y e2e Cypress "elegir rama → ver gráfica" | **M** | M | BR-07…BR-21 | Cobertura de los archivos tocados no baja respecto al estado previo. |
 | **BR-29** | E6 | Rollout por etapas del flag, monitoreo de errores 404/429 y actualización de READMEs | **S** | S | BR-28 | Plan de activación documentado y reversible. |
 | **BR-30** | E6 | Corregir comentarios obsoletos "NO SE USA" en `TDDCyclesController` (p. ej. `commit-timeline`) | **C** | XS | — | Comentarios coherentes con el uso real. |
+| **BR-31** | E4 | Implementar el consumo frontend de la fotografía de rama: estados `ok`, `missing`, JSON inválido y error; mostrar SHA consultado y procedencia | **M** | M | BR-10, BR-19, BR-20 | La interfaz no mezcla datos de consultas anteriores y diferencia archivo ausente, archivo vacío, error y datos parciales. |
+| **BR-32** | E4 | Definir y diseñar el selector de modos (una rama en MVP; todas/comparación en iteración posterior) y sus reglas semánticas | **S** | M | BR-21, BR-22, BR-24 | MVP permite consultar una rama; el diseño documenta cómo se cuentan eventos comunes, exclusivos, ejecuciones y cobertura en modos futuros. |
 
 ### 7.2 Orden sugerido (hitos)
 
 | Hito | Contenido | Condición de salida |
 |---|---|---|
-| **H0 — Red de seguridad y descubrimiento** | BR-27, BR-01, BR-02, BR-03 | Regresión en verde; ADR-01/02/03 cerrados; contrato de archivos del proyecto base documentado. |
-| **H1 — Núcleo y backend** | BR-04, BR-05, BR-06, BR-07, BR-08, BR-09 | API devuelve datos por rama; sin `branch` es idéntica a hoy. |
-| **H2 — Datos en origen y frontend MVP** | BR-14, BR-15, BR-19, BR-20, BR-21, BR-22, BR-28 | Un estudiante con una rama de trabajo ve su gráfica con el flag encendido. |
-| **H3 — Robustez** | BR-10, BR-11, BR-12, BR-16, BR-17, BR-23, BR-25, BR-26, BR-29 | Merges no corrompen datos; vista docente y asistente coherentes; rollout controlado. |
-| **H4 — Evolución** | BR-13, BR-18, BR-24, BR-30 | A demanda. |
+| **H0 — Red de seguridad y descubrimiento** | BR-27, BR-01, BR-02, BR-03 | Regresión en verde; ADR-01 a ADR-04 cerrados; contrato de archivos del proyecto base documentado. |
+| **H1 — Núcleo y backend** | BR-04, BR-05, BR-06, BR-07, BR-08, BR-09, BR-10 | API devuelve una fotografía coherente por rama; el flujo legado sin rama se conserva. |
+| **H2 — Datos en origen y frontend MVP** | BR-14, BR-15, BR-16, BR-19, BR-20, BR-21, BR-22, BR-28, BR-31 | Un estudiante consulta una rama y ve datos consistentes, con identidad y estados explícitos. |
+| **H3 — Robustez** | BR-11, BR-12, BR-17, BR-23, BR-25, BR-26, BR-29 | Merges no corrompen datos; vista docente y asistente coherentes; rollout controlado. |
+| **H4 — Evolución** | BR-13, BR-18, BR-24, BR-30, BR-32 | A demanda; incluye todas las ramas, comparación y persistencia si se confirma como requisito. |
 
-> Orden de dependencia crítica: **BR-27 → (BR-01, BR-02) → BR-03 → BR-04/05 → BR-07 → BR-08 → BR-19 → BR-20 → BR-21.** Lo que depende del proyecto base (BR-14, BR-15, BR-16) puede avanzar en paralelo una vez cerrado BR-01.
+> Orden de dependencia crítica: **BR-27 → BR-01/02 → BR-03 → BR-04/05 → BR-07/09/10 → BR-19/20/21/31.** En paralelo, una vez revisado BR-01, pueden integrarse BR-14/15/16. La persistencia relacional no bloquea el MVP de fotografía Git salvo que el criterio de aceptación del equipo la exija.
 
 ---
 
@@ -357,14 +395,14 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 
 | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|
-| El proyecto base no registra rama ni corre CI en ramas ≠ `main` (datos vacíos o en negro, H6) | Alta **[VERIFICAR]** | Alto | BR-01 primero; BR-14/15 en el mismo hito que la UI; mensaje explícito "sin datos TDD en esa rama". |
-| Merges/rebases/squash desalinean `tdd_log.json` y commits (H5) | Alta | Alto | BR-22 (unión por `sha`) y BR-16 (normalizador). |
+| Los logs actuales no registran rama y el workflow limita `push` a `main` (datos incompletos en features) | Alta, demostrado en análisis 02 | Alto | Integrar BR-14/15; no habilitar visualización de rama hasta verificar datos de origen. |
+| Merges/rebases/cherry-pick pueden generar conflictos, pérdida o SHA incorrectos en los logs | Alta, demostrado en análisis 02 | Alto | Integrar driver de tres vías y post-rewrite (BR-16); la prueba de concepto aún debe reproducirse en el repo compartido. |
 | Regresión en proyectos sin ramas | Media | Alto | BR-27 como requisito de merge; flag apagado por defecto. |
 | Nombre de rama malicioso o con `/` rompe la URL (H4) | Media | Medio | BR-05 + codificación por segmento. |
 | Límite de tasa de GitHub al listar ramas o leer por rama | Media | Medio | Caché (BR-11), paginación, token del servidor. |
 | Dos parsers del enlace divergen | Alta si no se unifica | Medio | BR-04 + BR-23: un único parser con la misma batería de pruebas en front y back. |
 | Una limpieza elimina un endpoint "NO SE USA" que sí se consume (H8) | Media | Medio | BR-30 y revisión previa de referencias. |
-| Rama inicial del estudiante distinta de `main` (H9) | Media | Medio | BR-18 (aviso) y fallback a `default_branch`. |
+| Rama seleccionada no existe, fue eliminada o no contiene logs | Media | Medio | Respuesta explícita por rama/archivo; sin fallback silencioso; permitir seleccionar otra rama. |
 
 ---
 
@@ -374,7 +412,10 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 - **Frontend (Jest, ya presente):** pruebas del parser, `CommitHistoryAdapter`, `useTDDChartPage`; conservar `CommitHistoryAdapter.test.ts` y `.spec.ts` existentes sin modificarlos como parte de la regresión.
 - **E2E (Cypress, ya presente):** escenario "sin rama" (idéntico al actual) y "con rama".
 - **Contrato:** respuesta de `/commits-history` y `/commit-cycles` sin `branch` debe ser byte a byte equivalente a la actual para un mismo repositorio de prueba.
-- **Datos:** repositorio de ejemplo con `main`, una rama de feature, un merge y un rebase, para validar BR-16 y BR-22.
+- **Proyecto base:** reproducir la batería del análisis 02 en una copia aislada: cambio de rama con/sin ejecuciones no commiteadas, stash/pop, merge local y PR, amend, rebase, cherry-pick, fallo de Jest y commits de documentación. Comparar el código actual con la propuesta integrada.
+- **Identidad y datos:** verificar `recordId` único, `branch` de origen, `headSha`, padres y reescrituras; comprobar que `testId` repetido en ramas distintas no cruza ejecuciones y que los históricos ambiguos permanecen desconocidos.
+- **API:** rama con `/`, rama inexistente, default distinto de `main`, archivo ausente, archivo vacío, JSON inválido, permisos insuficientes, rate limit y actualización de ref durante la consulta. Confirmar que ambos archivos usan el mismo `resolvedSha`.
+- **Gráficas:** una rama en MVP; posteriormente ramas compartidas/exclusivas, comparación con mismo período/escala, cobertura ausente frente a cero, ejecuciones fallidas y datos parciales.
 
 ---
 
@@ -388,8 +429,24 @@ Los análisis de los demás integrantes **no estaban en el material entregado**.
 | Proponer la integración sin afectar lo actual | Secciones 4.1, 4.2, 4.4 | Completo |
 | Estrategia de compatibilidad con proyectos sin ramas | Sección 4.5 y diagrama 4.3 | Completo |
 | Diagrama general de la arquitectura propuesta | Sección 4.2 (y 4.3) | Completo |
-| Revisar los resultados de los análisis de los demás integrantes | Sección 5.1 | **Parcial:** no estaban en el material; se dejaron insumos esperados y supuestos para contrastar |
-| Consolidar las propuestas de solución | Sección 5.2 | **Parcial:** consolidada la parte de arquitectura; faltan scripts/logs/gráficas |
+| Revisar los resultados de los análisis de los demás integrantes | Sección 5.1 | **Completo a nivel documental:** se incorporan el PDF del integrante 1 y los análisis 02, 03 y 04; quedan validaciones de integración y esquema real |
+| Consolidar las propuestas de solución | Sección 5.2 y 5.3 | **Completo como propuesta:** se identifican acuerdos y decisiones pendientes del equipo |
 | Definir las funcionalidades necesarias | Sección 6 | Completo |
 | Organizar y priorizar el backlog | Secciones 7.1 y 7.2 | Completo (estimaciones a calibrar) |
-| Documentar la propuesta final | Este documento | Completo, sujeto al cierre de las filas pendientes de la sección 5.1 |
+| Documentar la propuesta final | Este documento | Completo como análisis y diseño; la implementación y decisiones pendientes se detallan en 5.3 y backlog |
+
+---
+
+## 11. Próximos pasos inmediatos
+
+1. **Acordar alcance:** confirmar si la historia exige fotografía por rama o también persistencia histórica después de eliminar una rama. Si exige persistencia, activar la etapa 2 del diseño del integrante 4.
+2. **Asegurar regresión:** implementar/ejecutar BR-27 y reproducir la batería de BR-01 en el repositorio compartido antes de integrar cambios.
+3. **Integrar datos de origen:** revisar la prueba de concepto del integrante 2 y acordar la incorporación de `recordId`, `branch`, `headSha`, padres, resolución de reescrituras, driver de merge y CI para todas las ramas.
+4. **Cerrar contrato de API:** implementar BR-09/10 con fotografía por `resolvedSha`; validar autenticación, autorización, rate limits y esquema real de plataforma.
+5. **Construir el MVP frontend:** parser `RepositoryRef`, selector de una rama, consumo de fotografía y unión por identidad/SHA; mostrar claramente datos ausentes o históricos sin procedencia.
+6. **Validar transversalmente:** comprobar coherencia con asistente IA, vista docente y extensión; activar el feature flag gradualmente.
+7. **Dejar para evolución:** modos todas las ramas/comparación y persistencia relacional, salvo que el equipo confirme que forman parte de la aceptación del Sprint.
+
+---
+
+**Conclusión de integración:** el análisis de arquitectura ya no se apoya en supuestos sobre los scripts y gráficas: incorpora resultados y evidencia de los otros integrantes. La recomendación técnica es implementar primero una consulta de una rama con fotografía Git coherente y trazabilidad fiable en origen, preservando el flujo legado. Las comparaciones avanzadas y la persistencia relacional deben depender de decisiones explícitas de alcance, no asumirse como necesarias sin validar los criterios de aceptación.
