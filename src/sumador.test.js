@@ -7,3 +7,7 @@ describe("Sumar", () => {
 });
 
 
+
+describe("Sumador HU02 en main", () => {
+  it("suma con cero", () => expect(sumar(0, 8)).toBe(8));
+});

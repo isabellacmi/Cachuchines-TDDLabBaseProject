@@ -1,0 +1,21 @@
+[
+  {
+    "sha": "HEAD",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:30:27.000Z",
+      "message": "test: verificar suma con cero para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 4,
+      "additions": 4,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 2,
+    "failed_tests": 0,
+    "conclusion": "success"
+  }
+]
