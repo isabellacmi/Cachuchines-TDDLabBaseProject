@@ -1,7 +1,7 @@
 # 03 — Análisis de gráficas y visualización por rama
 
-**Responsable:** Henry — Integrante 3.  
-**Sprint:** 3. **Fecha de revisión:** 2 de noviembre de 2026.  
+**Responsable:** Henry — Integrante 3.
+**Sprint:** 3. **Fecha de revisión:** 2 de noviembre de 2026.
 **Objetivo:** determinar cómo afectan las ramas Git a las gráficas y estadísticas de TDDLab y proponer su consulta por rama, sin implementar cambios.
 
 ## 1. Alcance y evidencia
@@ -125,3 +125,198 @@ Después de un merge, `findIndex` solo corrige el primer `HEAD` usando el primer
 La línea de cambios por commit tampoco equivale a esfuerzo total: sumar cambios de commits de feature y cambios del merge frente al primer padre puede contar de nuevo parte de las mismas líneas. Una comparación debe mostrar por separado el commit de integración.
 
 **Límite de esta verificación:** se comprobó la lógica de lectura y captura; el contenido concreto conservado después de un merge depende de los archivos y de la resolución de conflictos. No se afirma que todos los merges pierdan o dupliquen datos.
+
+## 8. Cambios necesarios propuestos, sin implementación
+
+| Capa | Cambio propuesto | Motivo |
+|---|---|---|
+| Captura | Registrar rama de ejecución, `runId` único, contexto de trabajo y referencia al commit base; capturar padres para eventos de commit cuando corresponda. | Distinguir origen y evitar colisiones de `testId`. Una prueba con cambios sin commit describe un árbol de trabajo, no necesariamente el contenido exacto del SHA base. |
+| Identidad | Resolver el SHA final pese al amend; conservar eventos inmutables y validar relaciones. Tratar `HEAD` como pendiente hasta resolverlo. | No presentar como identidad definitiva un marcador mutable ni resolver todos los eventos con el primer padre. |
+| Integración de logs | Definir unión por identificadores, validación de esquema y manejo explícito de conflictos. | Evitar que el orden textual o elegir un lado del merge determine silenciosamente las estadísticas. |
+| Backend | Listar ramas; aceptar rama/ref en historial, ciclos y detalle; resolver el tip de cada rama y leer ambos logs desde ese SHA. | Mantener una instantánea consistente y soportar ramas con `/`, sin concatenaciones ambiguas de URL. |
+| Contratos | Transportar repositorio, rama consultada, SHA de instantánea, origen conocido/desconocido y procedencia de métricas. | Distinguir lo observado de lo inferido y detectar datos incompletos. |
+| Frontend | Extender puertos, casos de uso, servicio, hook y vistas con el contexto de rama. Incluirlo en claves de caché y navegación. | Evitar que el dashboard, la lista y el modal consulten contextos diferentes. |
+| Asociación | Reemplazar índices por SHA final e identificadores de ejecución; conservar referencias pendientes sin atribuirlas a otro commit. | Un filtro, merge o cambio de orden no debe reasignar pruebas. |
+| Métricas | Preservar datos originales, separar cero de ausencia y unificar reglas de clasificación entre vistas. | Comparaciones fiables; limitar visualmente el radio sin cambiar `stats.total`. |
+| Git / CI | Revisar cobertura de ramas del workflow si se mostrarán resultados de Actions y distinguir esos resultados de la ejecución local del tracker. | La ausencia de un run de CI no significa fallo de pruebas. |
+
+No se define una migración de base de datos en este entregable. El diseño físico y contrato definitivo se coordinan con Lucas (04); la estrategia de captura y unión, con Carlos (02); el alcance e integración, con Isabella (05).
+
+### 8.1 Compatibilidad
+
+- Mantener el comportamiento existente para clientes sin parámetro de rama durante la transición: actualmente leen `main`. Adoptar la rama predeterminada real del repositorio es una mejora distinta que debe acordarse y probarse.
+- Una rama explícita inexistente debe devolver un error claro, sin sustituirla silenciosamente por `main`.
+- Logs antiguos siguen siendo legibles. La referencia desde la que se descargan es conocida; su **rama de ejecución** puede ser desconocida. No rellenar ese dato con la rama consultada.
+- Si falta `commit-history.json` o `tdd_log.json`, mostrar qué archivo falta. No representar ausencia como cero tests o cero cobertura.
+- Los nuevos controles pueden activarse gradualmente con un flag. Una sola rama debe seguir siendo un caso simple.
+
+## 9. Filtros y reglas de consulta
+
+### 9.1 Tres modos
+
+| Modo | Controles | Qué muestra | Regla de conteo |
+|---|---|---|---|
+| Una rama | Selector de rama y métrica. | Instantánea de los logs de esa rama, con indicador de origen cuando esté disponible. | Un registro válido por identidad; advertir registros no reconciliados con la historia Git. |
+| Todas las ramas | Ramas incluidas y métrica. | Paneles o carriles por rama, con resumen global de eventos únicos. | Commits compartidos se cuentan una vez por `(repositorio, SHA)` en el global y se señalan en cada rama. Ejecuciones se deduplican por `runId`, no por `testId`. |
+| Comparar ramas | Dos ramas inicialmente; perspectiva completa o desde ancestro común. | Paneles alineados con misma escala, valores por rama y diferencias. | Cada panel conserva su historia; mostrar comunes/exclusivos sin sumar los totales como si fueran disjuntos. |
+
+Para logs antiguos sin `runId`, la deduplicación de ejecuciones entre ramas no es fiable. Mostrar “total global no disponible para registros sin identidad” o separar datos identificados y heredados; no eliminar por coincidencia de fecha y contador.
+
+**Filtros complementarios:** rango temporal (zona horaria visible), autor, estado (éxito, fallo, sin datos, pendiente) e inclusión de commits de merge. Deben aplicarse al mismo conjunto de datos en gráficos, totales y detalle. El rango temporal usa fecha de commit para commits y fecha de ejecución para ejecuciones, indicándolo en la vista.
+
+### 9.2 Semántica para comparar
+
+- El modo inicial consulta la historia completa de cada rama. “Desde ancestro común” excluye el tramo compartido y permite comparar trabajo exclusivo; no debe presentarse como el mismo cálculo.
+- Eje por fecha para alinear eventos entre ramas; eje ordinal opcional rotulado “secuencia local de la rama”. `Commit 3` de dos ramas no representa el mismo commit.
+- Cobertura: mostrar valor del último resultado válido dentro del período por rama y su SHA; diferencia en **puntos porcentuales**, no sumar porcentajes ni hacer promedio sin denominadores compatibles.
+- Tests: distinguir cantidad de pruebas de una suite en un commit, número de ejecuciones y número de fallos. No sumar tamaños de suites repetidas como “tests únicos”.
+- Líneas: comparar cambios por commit, con merges separados o excluidos por defecto de la suma de actividad. No interpretar la suma como tamaño final del código ni esfuerzo.
+- Distribución: categorías mutuamente excluyentes con una regla compartida y explícita. Propuesta: fallo, éxito sin marca de refactor, éxito con marca de refactor, sin resultado. La marca del mensaje no demuestra refactorización ni cumplimiento completo de TDD.
+- Si una rama se elimina, solo se puede seguir consultando su contexto histórico si previamente se conservó una instantánea accesible; listar ramas actuales no reconstruye ramas borradas.
+
+## 10. Propuesta visual
+
+Boceto de estructura, sin implementación ni datos reales. Se conserva el selector actual de métricas y se añade el contexto de ramas encima para estudiantes y docentes. La finalidad es consultar y comparar, sin controles que modifiquen Git.
+
+### 10.1 Una rama
+
+```text
+Tarea: [repositorio]                          Autor: [estudiante]
+
+Modo: [Una rama v]   Rama: [feature/login v]
+Métrica: [Cobertura de código v]   Período: [Desde] [Hasta]
+                                               [Consultar]
+
+Consultando: feature/login · Instantánea: [SHA corto]
+Última ejecución: [fecha y zona] · Datos: [completos / parciales]
+
+[Commits únicos]   [Ejecuciones]   [Cobertura del último resultado]
+
+Cobertura (%)
+  |
+  |          o--------o
+  |    o-----o
+  +-------------------------------------- Fecha
+
+Detalle: [SHA] [fecha] [resultado] [cobertura] [abrir commit]
+Origen de ejecución: [rama / desconocido]
+```
+
+Los puntos indican resultados disponibles; una ausencia deja un hueco y una etiqueta “Sin dato”. No se dibuja cero para suplirla. El tooltip muestra rama consultada, SHA, fecha, resultado y origen de la métrica. El detalle de pruebas se obtiene por identidad y conserva el mismo contexto.
+
+### 10.2 Todas las ramas
+
+```text
+Modo: [Todas las ramas v]   Métrica: [Ciclo de ejecuciones v]
+Ramas: [main] [feature/login] [feature/pago]      [Consultar]
+
+Resumen global: [commits únicos] [ejecuciones identificadas]
+Aviso: los eventos compartidos cuentan una vez en el resumen.
+
+main           | [éxito A] [fallo B]              [merge M]
+feature/login  | [común A]       [éxito C] [éxito D]
+feature/pago   | [común A]       [fallo E]
+               +---------------------------------- Fecha
+
+Leyenda: resultado por texto y símbolo; comunes y merges rotulados.
+```
+
+Los carriles evitan unir una ejecución de una rama con otra mediante una línea única. Un commit compartido puede aparecer en varios carriles, con la misma identidad visible. Las métricas de commits se muestran como paneles por rama; el resumen global distingue eventos únicos y pertenencias.
+
+### 10.3 Comparar ramas
+
+```text
+Modo: [Comparar ramas v]
+Rama A: [main v]              Rama B: [feature/login v]
+Historia: [Desde ancestro común v]
+Métrica: [Cobertura de código v]                  [Comparar]
+
+main · [SHA A]                 feature/login · [SHA B]
+Cobertura (%)                  Cobertura (%)
+100 |                          100 |
+    |   o---o                      |   o-----o
+  0 +------------ Fecha          0 +------------ Fecha
+
+                 MISMO PERÍODO Y MISMA ESCALA
+
+Indicador           Rama A          Rama B         Diferencia
+Cobertura final     [valor o N/D]   [valor o N/D]   [puntos]
+Commits exclusivos  [cantidad]      [cantidad]      [cantidad]
+Ejecuciones         [cantidad]      [cantidad]      [cantidad]
+
+[Ver commits comunes]  [Ver merges]  [Ver datos incompletos]
+```
+
+La rama se identifica mediante encabezado y etiqueta; el resultado mantiene texto y símbolo además del color. Evitar reutilizar rojo/verde/azul para identificar ramas, pues ya comunican estados. La escala de cobertura permanece de 0 a 100 % en ambos paneles. En pantalla pequeña los paneles se apilan y conservan filtros, leyenda y escala.
+
+### 10.4 Estados y comportamiento
+
+| Estado | Mensaje / comportamiento propuesto |
+|---|---|
+| Carga | Mostrar qué ramas se están consultando; no mezclar tarjetas antiguas con una gráfica nueva. Descartar respuestas obsoletas si cambia la consulta. |
+| Rama sin ejecuciones | “No hay ejecuciones registradas en esta rama para el período seleccionado”. Permitir ampliar el período. |
+| Log ausente | “Esta rama no contiene script/tdd_log.json”; conservar métricas del historial si están disponibles y advertir la limitación. |
+| Rama inexistente | “La rama seleccionada ya no está disponible”. Permitir elegir otra, sin fallback silencioso. |
+| JSON inválido | Identificar archivo y rama; no dibujar resultados parciales como si fueran completos. |
+| Error de red o permisos | Mensaje específico y acción Reintentar. En comparación, marcar el panel afectado y suspender las diferencias que dependan de él. |
+| Origen desconocido / HEAD pendiente | Etiquetas explícitas y exclusión de comparaciones que requieran identidad confirmada. |
+
+Controles con etiquetas, uso por teclado y foco visible; una tabla de datos equivalente acompaña las gráficas para lectura accesible. La acción Consultar aplica juntos los filtros y actualiza el contexto en la URL. La navegación docente entre estudiantes mantiene el modo elegido, pero vuelve a validar la rama en cada repositorio.
+
+## 11. Verificación sugerida para una implementación futura
+
+Estos son **casos propuestos, no pruebas ejecutadas en esta revisión**. Deben realizarse en un repositorio de ensayo aislado.
+
+| Caso | Criterio observable |
+|---|---|
+| Una rama y consulta sin filtro | El comportamiento previo se conserva; cada valor coincide con el JSON de referencia. |
+| Rama feature con pruebas aún no integradas | Se ve al seleccionar esa rama y no aparece como evento exclusivo de `main`. |
+| Ancestros compartidos entre dos ramas | Cada panel puede mostrarlos, pero el total global los cuenta una vez. |
+| Igual `testId` en dos ramas | Las ejecuciones no se cruzan; se usa identidad de evento y contexto. |
+| Merge normal / fast-forward | Datos conservados según la política de unión; integración señalada; ningún cambio de asociación por reordenamiento. |
+| Squash o JSON conflictivo | Se señalan referencias no alcanzables o errores; no se inventa correspondencia con otro SHA. |
+| Rama con `/`, sin logs o eliminada | Consulta correctamente codificada y estado explícito en cada caso. |
+| Cobertura cero, cobertura ausente y pruebas fallidas | Estados diferentes; clasificación consistente entre pastel, líneas y dashboard. |
+| Commit con más de 100 líneas modificadas | La tabla y el tooltip conservan el valor original aunque se limite el radio visual. |
+| Cambio rápido de rama y actualización remota | Ambos archivos pertenecen al SHA de la consulta; una respuesta anterior no reemplaza la actual. |
+| Comparación con un panel fallido | No se calcula una diferencia usando cero en lugar del dato faltante. |
+
+## 12. Trazabilidad y coordinación
+
+| Tarea del integrante 3 | Sección |
+|---|---|
+| Identificar gráficas disponibles | 3 |
+| Investigar origen de datos | 4 |
+| Analizar representación de commits y pruebas | 5 |
+| Verificar mezcla de ramas | 6 |
+| Analizar efecto de merges | 7 |
+| Identificar cambios necesarios | 8 |
+| Proponer filtros de todas, una y comparación | 9 |
+| Elaborar propuesta visual | 10 |
+
+Prioridad recomendada: primero identidad y consistencia de datos; después consulta de una rama; finalmente todas las ramas y comparación. Corresponde con el enfoque gradual de 05 (BR-14, BR-19 a BR-22 y BR-24), pero la comparación y reglas de agregación requieren acordar alcance explícito. Este documento no cambia el backlog de otros integrantes.
+
+Pendientes de validar con el equipo: política de deduplicación de logs heredados; contrato de instantáneas y conservación de ramas eliminadas; semántica del grupo ejecución/commit; y validación funcional con datos de ensayo de las vistas declaradas pero no conectadas. No hay evidencia visual de una sesión real ni capturas de producción adjuntas.
+
+## 13. Fuentes de código para reproducir la revisión
+
+Rutas relativas a cada repositorio, verificadas durante esta revisión. Se usan rutas en texto para mantener el documento portable aunque la plataforma no esté como carpeta hermana del proyecto base.
+
+**Proyecto base:**
+
+- `package.json`: disparador de pruebas.
+- `script/tddScript.js`, `script/id_execution_tests_commit.js`: ejecución y agrupación local.
+- `script/commitScript.js`, `script/commit-tracker.js`: captura de commits, métricas y marcador `HEAD`.
+- `.husky/post-commit`, `.gitattributes`, `.gitignore`: versionado e integración de logs.
+- `.github/workflows/integrate.yml`: alcance de CI.
+
+**Plataforma TDDLab:**
+
+- `Web Ui/src/presentation/tdd-visualization/pages/TDDChartPage.tsx`: contenedor de la vista.
+- `Web Ui/src/presentation/tdd-visualization/hooks/useTDDChartPage.ts`: contexto y carga.
+- `Web Ui/src/presentation/tdd-visualization/services/tddVisualization.service.ts`: consultas concurrentes.
+- `Web Ui/src/modules/TDDCycles-Visualization/repository/CommitHistoryAdapter.ts`: URLs y parámetros.
+- `Web Ui/src/presentation/tdd-visualization/components/`: archivos inventariados en la sección 3, además de `TDDCommitTimelineDialog.tsx`.
+- `server/src/routes/TDDCyclesRoutes.ts` y `server/src/controllers/TDDCycles/TDDCyclesController.ts`: entrada HTTP.
+- `server/src/modules/TDDCycles/Application/getCommitHistoryUseCase.ts`, `getCommitCyclesUseCase.ts`, `getCommitTimeLineUseCase.ts`: delegación de consultas.
+- `server/src/modules/TDDCycles/Repositories/GithubRepository.ts`: lectura de JSON, mapeo y caminos alternativos de GitHub.
