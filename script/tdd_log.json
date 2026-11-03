@@ -30,9 +30,23 @@
     "testId": 1
   },
   {
-    "commitId": "HEAD",
+    "commitId": "eedd04ea47860b1fea104be1885fc772b4f4c31b",
     "commitName": "test: verificar suma de negativos y decimales para HU02",
     "commitTimestamp": 1793676662777,
     "testId": 1
+  },
+  {
+    "numPassedTests": 5,
+    "failedTests": 0,
+    "numTotalTests": 5,
+    "timestamp": 1793676966743,
+    "success": true,
+    "testId": 2
+  },
+  {
+    "commitId": "HEAD",
+    "commitName": "test: verificar suma con signos diferentes para HU02",
+    "commitTimestamp": 1793676970127,
+    "testId": 2
   }
 ]
