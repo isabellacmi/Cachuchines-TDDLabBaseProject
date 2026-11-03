@@ -52,9 +52,23 @@
     "testId": 2
   },
   {
-    "commitId": "HEAD",
+    "commitId": "4d637f3a98fb72e4c765251125b0fcce83e8741c",
     "commitName": "feat: agregar restador con positivos y negativos para HU02",
     "commitTimestamp": 1793676720510,
     "testId": 2
+  },
+  {
+    "numPassedTests": 7,
+    "failedTests": 0,
+    "numTotalTests": 7,
+    "timestamp": 1793676731394,
+    "success": true,
+    "testId": 3
+  },
+  {
+    "commitId": "HEAD",
+    "commitName": "test: verificar resta de decimales para HU02",
+    "commitTimestamp": 1793676735756,
+    "testId": 3
   }
 ]
