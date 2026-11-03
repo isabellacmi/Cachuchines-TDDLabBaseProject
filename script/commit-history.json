@@ -19,12 +19,12 @@
     "conclusion": "success"
   },
   {
-    "sha": "HEAD",
+    "sha": "eedd04ea47860b1fea104be1885fc772b4f4c31b",
     "author": "andresrev070303",
     "commit": {
       "date": "2026-11-03T03:31:01.000Z",
       "message": "test: verificar suma de negativos y decimales para HU02",
-      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/eedd04ea47860b1fea104be1885fc772b4f4c31b"
     },
     "stats": {
       "total": 5,
@@ -34,6 +34,25 @@
     },
     "coverage": 100,
     "test_count": 4,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "HEAD",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:31:59.000Z",
+      "message": "feat: agregar restador con positivos y negativos para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 6,
+      "additions": 6,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 6,
     "failed_tests": 0,
     "conclusion": "success"
   }
