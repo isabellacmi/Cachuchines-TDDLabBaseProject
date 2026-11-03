@@ -38,12 +38,12 @@
     "conclusion": "success"
   },
   {
-    "sha": "HEAD",
+    "sha": "e2a9e0afebc5e505b077ea230b82a4c12392c636",
     "author": "andresrev070303",
     "commit": {
       "date": "2026-11-03T03:35:31.000Z",
       "message": "feat: agregar multiplicador con positivos y cero para HU02",
-      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/e2a9e0afebc5e505b077ea230b82a4c12392c636"
     },
     "stats": {
       "total": 6,
@@ -53,6 +53,25 @@
     },
     "coverage": 100,
     "test_count": 6,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "HEAD",
+    "author": "andresrev070303",
+    "commit": {
+      "date": "2026-11-03T03:35:51.000Z",
+      "message": "test: verificar multiplicacion de negativos para HU02",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 2,
+      "additions": 2,
+      "deletions": 0,
+      "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 7,
     "failed_tests": 0,
     "conclusion": "success"
   }

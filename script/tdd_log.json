@@ -52,9 +52,23 @@
     "testId": 2
   },
   {
-    "commitId": "HEAD",
+    "commitId": "e2a9e0afebc5e505b077ea230b82a4c12392c636",
     "commitName": "feat: agregar multiplicador con positivos y cero para HU02",
     "commitTimestamp": 1793676932823,
     "testId": 2
+  },
+  {
+    "numPassedTests": 7,
+    "failedTests": 0,
+    "numTotalTests": 7,
+    "timestamp": 1793676948861,
+    "success": true,
+    "testId": 3
+  },
+  {
+    "commitId": "HEAD",
+    "commitName": "test: verificar multiplicacion de negativos para HU02",
+    "commitTimestamp": 1793676953088,
+    "testId": 3
   }
 ]
