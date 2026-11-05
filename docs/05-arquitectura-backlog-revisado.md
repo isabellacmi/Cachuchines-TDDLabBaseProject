@@ -1,6 +1,6 @@
 # 05 — Arquitectura y backlog: soporte de ramas Git en TDDLab
 
-**Rol:** Isabella Catherine Montes Iñiguez - Scrum Master
+**Rol:** equipo de desarrollo responsable de la evolución de TDDLab
 **Objetivo:** identificar los componentes afectados por el soporte de ramas Git, consolidar los análisis y definir un backlog priorizado, sin afectar el funcionamiento actual.
 **Base de análisis:** repositorio `TDDLab` (carpetas `server/`, `Web Ui/`, `VSCodeExtension/`, `.github/`), rama `main`, estado al 02/11/2026.
 
@@ -450,3 +450,58 @@ Los cinco aportes ya están disponibles: el primero está integrado en la presen
 ---
 
 **Conclusión de integración:** el análisis de arquitectura ya no se apoya en supuestos sobre los scripts y gráficas: incorpora resultados y evidencia de los otros integrantes. La recomendación técnica es implementar primero una consulta de una rama con fotografía Git coherente y trazabilidad fiable en origen, preservando el flujo legado. Las comparaciones avanzadas y la persistencia relacional deben depender de decisiones explícitas de alcance, no asumirse como necesarias sin validar los criterios de aceptación.
+
+---
+
+## 12. Ejemplo del flujo completo de funcionamiento de TDDLab
+
+### 12.1 Escenario
+
+Una estudiante abre el proyecto base en VS Code, trabaja en una función de ejemplo llamada `restar`, ejecuta sus pruebas, realiza un commit y sube los cambios a GitHub. Después, el docente abre la entrega en TDDLab para consultar las ejecuciones, los commits y la evolución del trabajo.
+
+### 12.2 Flujo paso a paso
+
+1. La estudiante abre el proyecto y prepara las dependencias.
+2. Escribe o modifica una prueba.
+3. Ejecuta `npm test`.
+4. `tddScript.js` ejecuta Jest y lee el reporte.
+5. Se actualiza `script/tdd_log.json` con el resultado de la ejecución.
+6. La estudiante realiza `git commit`.
+7. Se ejecuta el hook `post-commit` de Husky.
+8. `commitScript.js` y `commit-tracker.js` registran información del commit, pruebas y cobertura.
+9. Se actualizan `tdd_log.json` y `commit-history.json`.
+10. El hook agrega los archivos JSON y ejecuta `git commit --amend --no-edit` para versionarlos junto al commit.
+11. La estudiante ejecuta `git push`.
+12. GitHub almacena el código y los archivos de log versionados.
+13. El docente abre la entrega en TDDLab.
+14. **Propuesta multirrama:** el docente selecciona el repositorio y la rama que desea revisar.
+15. **Propuesta multirrama:** el backend valida la rama y la resuelve a un SHA concreto.
+16. **Propuesta multirrama:** el backend obtiene `tdd_log.json` y `commit-history.json` desde esa misma revisión SHA.
+17. **Propuesta multirrama:** TDDLab relaciona ejecuciones y commits mediante identificadores estables y SHA, evitando depender únicamente de la posición de los registros.
+18. La Web UI presenta las gráficas y el timeline correspondientes.
+19. El asistente de IA analiza el contexto de esa misma rama.
+
+### 12.3 Diagrama del flujo
+
+La imagen complementaria `flujo-tddlab.png` representa visualmente estos pasos. También se entrega en SVG para mantenerla escalable y en formato Graphviz (`.dot`) para poder modificar el diagrama.
+
+### 12.4 Qué ocurre hoy y qué se propone
+
+- **Comportamiento actual analizado:** los scripts generan y versionan los archivos JSON; TDDLab consulta el historial y los logs, pero las rutas identificadas están orientadas a `main`.
+- **Mejora propuesta:** permitir seleccionar una rama, resolverla a un SHA y consultar ambos JSON desde esa misma revisión.
+- **Mejora propuesta:** asociar registros mediante identificadores estables y SHA para evitar desalineaciones al trabajar con ramas y operaciones Git no lineales.
+- **Compatibilidad:** si no se especifica una rama, se mantiene el comportamiento legado durante la transición.
+
+### 12.5 Relación con el backlog
+
+| Paso del flujo | Trabajo relacionado |
+|---|---|
+| Generar y mantener registros de pruebas y commits | BR-01, BR-14 y BR-16 |
+| Cubrir operaciones Git y consistencia de logs | BR-16 y BR-27 |
+| Ejecutar CI en ramas | BR-15 |
+| Consultar ambos JSON desde una misma revisión | BR-31 — API de fotografía de rama |
+| Seleccionar rama y visualizar datos | BR-21, BR-24 y BR-32 |
+| Relacionar correctamente ejecuciones y commits | BR-22 |
+| Mantener el comportamiento existente | BR-27 |
+
+**Mensaje para la exposición:** el flujo empieza cuando el estudiante escribe y ejecuta sus pruebas. TDDLab registra los resultados en archivos JSON. Cuando realiza un commit, los hooks actualizan también el historial y la cobertura, y esos archivos se versionan junto con el proyecto. Después, el estudiante sube los cambios a GitHub y el docente consulta la actividad desde TDDLab. La limitación actual es que las consultas analizadas están orientadas a `main`. La propuesta es permitir seleccionar una rama, resolverla a un SHA y leer desde esa misma revisión los registros de pruebas y commits, para que las gráficas y el asistente trabajen con información consistente.
