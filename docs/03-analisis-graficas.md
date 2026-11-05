@@ -11,11 +11,11 @@ Se revisaron dos repositorios locales:
 - **Proyecto base:** `Cachuchines-TDDLabBaseProject`, referencia inicial `a1adafd`. Contiene la aplicación de ejemplo, scripts de captura y hooks; no contiene el frontend ni el backend de la plataforma.
 - **Plataforma:** carpeta vecina `TDDLab`, referencia `5066d4aa247e6f5139f1a897006dcfb8e1c8bb64`. Se inspeccionaron en modo de lectura `Web Ui/src/` y `server/src/`. Tenía una modificación previa en `server/package-lock.json`, ajena a este análisis.
 
-La estructura real de la plataforma usa `Web Ui/` y `server/`, equivalentes al frontend y backend del esquema del sprint. El entregable se guarda en la estructura solicitada: `docs/sprint-3/03-analisis-graficas.md`. No se reubican los documentos anteriores.
+La estructura real de la plataforma usa `Web Ui/` y `server/`, equivalentes al frontend y backend del esquema del sprint. El entregable se guarda en la estructura solicitada: `03-analisis-graficas.md`. No se reubican los documentos anteriores.
 
 **Método:** inspección estática de componentes, adaptadores, rutas, repositorios, generadores de logs y configuración Git. Las conclusiones sobre merges son deducciones del código; no se presentan como un experimento ejecutado ni como observaciones de producción. No se ejecutaron pruebas, hooks, instalación, merges ni consultas remotas: esas acciones generarían datos innecesarios para esta revisión.
 
-Los documentos existentes [02 — scripts y logs](../02-analisis-scripts-logs.md) y [05 — arquitectura y backlog](../05-arquitectura-backlog.md) se usaron como contexto. Los experimentos descritos en el documento 02 pertenecen a ese análisis y no se repitieron aquí.
+Los documentos existentes [02 — scripts y logs](02-analisis-scripts-logs.md) y [05 — arquitectura y backlog](../05-arquitectura-backlog.md) se usaron como contexto. Los experimentos descritos en el documento 02 pertenecen a ese análisis y no se repitieron aquí.
 
 ## 2. Resultado principal
 
@@ -58,9 +58,9 @@ Rutas de esta sección relativas a `TDDLab/Web Ui/src/presentation/tdd-visualiza
 
 | Fuente | Generación | Campos relevantes |
 |---|---|---|
-| `script/tdd_log.json` — ejecución | `npm test` → `script/tddScript.js` → Jest → `script/report.json` | `numPassedTests`, `failedTests`, `numTotalTests`, `timestamp`, `success`, `testId`. |
-| Mismo log — commit | `script/commitScript.js`, desde `.husky/post-commit` | `commitId`, `commitName`, `commitTimestamp`, `testId`. |
-| `script/commit-history.json` | `script/commit-tracker.js`, desde el mismo hook; ejecuta Jest nuevamente con cobertura | `sha`, `commit.date/message/url`, `stats.total/additions/deletions`, `coverage`, `test_count`, `failed_tests`, `conclusion`. |
+| `../script/tdd_log.json` — ejecución | `npm test` → `../script/tddScript.js` → Jest → `script/report.json` | `numPassedTests`, `failedTests`, `numTotalTests`, `timestamp`, `success`, `testId`. |
+| Mismo log — commit | `../script/commitScript.js`, desde `.husky/post-commit` | `commitId`, `commitName`, `commitTimestamp`, `testId`. |
+| `../script/commit-history.json` | `../script/commit-tracker.js`, desde el mismo hook; ejecuta Jest nuevamente con cobertura | `sha`, `commit.date/message/url`, `stats.total/additions/deletions`, `coverage`, `test_count`, `failed_tests`, `conclusion`. |
 
 El hook agrega los logs y realiza `git commit --amend --no-edit`. Por ello se usa el marcador `HEAD` y en la siguiente captura se reemplaza el primer marcador encontrado por `HEAD~1`. No se registra `branch`, identificador único de ejecución ni padres del commit en estos JSON.
 
@@ -304,11 +304,11 @@ Rutas relativas a cada repositorio, verificadas durante esta revisión. Se usan 
 
 **Proyecto base:**
 
-- `package.json`: disparador de pruebas.
-- `script/tddScript.js`, `script/id_execution_tests_commit.js`: ejecución y agrupación local.
-- `script/commitScript.js`, `script/commit-tracker.js`: captura de commits, métricas y marcador `HEAD`.
-- `.husky/post-commit`, `.gitattributes`, `.gitignore`: versionado e integración de logs.
-- `.github/workflows/integrate.yml`: alcance de CI.
+- `../package.json`: disparador de pruebas.
+- `../script/tddScript.js`, `script/id_execution_tests_commit.js`: ejecución y agrupación local.
+- `../script/commitScript.js`, `script/commit-tracker.js`: captura de commits, métricas y marcador `HEAD`.
+- `../.husky/post-commit`, `.gitattributes`, `.gitignore`: versionado e integración de logs.
+- `../.github/workflows/integrate.yml`: alcance de CI.
 
 **Plataforma TDDLab:**
 

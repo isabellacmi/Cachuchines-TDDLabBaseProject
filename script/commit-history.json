@@ -152,18 +152,37 @@
     "conclusion": "success"
   },
   {
-    "sha": "HEAD",
+    "sha": "58c1444b8aa76057f306daef21a087259ea5662e",
     "author": "andresrev070303",
     "commit": {
       "date": "2026-11-03T03:44:54.000Z",
       "message": "Merge feature/multiplicador into main for HU02",
-      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/58c1444b8aa76057f306daef21a087259ea5662e"
     },
     "stats": {
       "total": 8,
       "additions": 8,
       "deletions": 0,
       "date": "2026-11-03"
+    },
+    "coverage": 100,
+    "test_count": 11,
+    "failed_tests": 0,
+    "conclusion": "success"
+  },
+  {
+    "sha": "HEAD",
+    "author": "ciriarte-dev",
+    "commit": {
+      "date": "2026-11-05T15:04:49.000Z",
+      "message": "fix: delete inncesarry directory in 03-analisis-graficas.md and modify structure of proyect's foldier",
+      "url": "https://github.com/isabellacmi/Cachuchines-TDDLabBaseProject/commit/HEAD"
+    },
+    "stats": {
+      "total": 26,
+      "additions": 13,
+      "deletions": 13,
+      "date": "2026-11-05"
     },
     "coverage": 100,
     "test_count": 11,

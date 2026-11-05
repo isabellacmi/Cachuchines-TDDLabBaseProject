@@ -4,7 +4,7 @@
 
 Este informe propone cómo consultar y, cuando se requiera, persistir información de múltiples ramas sin alterar el comportamiento existente. El alcance directamente inspeccionado es `Cachuchines-TDDLabBaseProject`; la plataforma TDDLab no está presente en el directorio vecino de esta sesión. Se revisaron estáticamente scripts, logs, hooks, configuración, interfaz de ejemplo y documentos del equipo. No se ejecutaron pruebas ni migraciones.
 
-**ESTADO ACTUAL** significa evidencia directa en este repositorio. **PROPUESTA** significa diseño futuro. **PENDIENTE DE VALIDACIÓN** identifica información de la plataforma conocida solo por documentación secundaria o decisiones que requieren acceso a ella. En particular, `docs/sprint-3/03-analisis-graficas.md` declara haber revisado otra copia de TDDLab y `docs/05-arquitectura-backlog.md` describe esa plataforma. Sus afirmaciones son útiles para orientar el diseño, pero no sustituyen la inspección de su código y esquema actuales.
+**ESTADO ACTUAL** significa evidencia directa en este repositorio. **PROPUESTA** significa diseño futuro. **PENDIENTE DE VALIDACIÓN** identifica información de la plataforma conocida solo por documentación secundaria o decisiones que requieren acceso a ella. En particular, `03-analisis-graficas.md` declara haber revisado otra copia de TDDLab y `docs/05-arquitectura-backlog.md` describe esa plataforma. Sus afirmaciones son útiles para orientar el diseño, pero no sustituyen la inspección de su código y esquema actuales.
 
 ## 2. Tecnologías y arquitectura actual
 
@@ -38,7 +38,7 @@ El tracker ejecuta Jest nuevamente con cobertura; sus métricas resumen esa ejec
 
 **Flujo comprobado:** Jest → `report.json` → ejecución en `tdd_log.json`; commit → hook → Git local y segunda ejecución Jest → entradas en ambos JSON → amend que versiona los archivos. Su publicación remota depende de una operación posterior del usuario; no existe en estos scripts ingesta hacia una base de datos ni consulta desde una API.
 
-**PENDIENTE DE VALIDACIÓN — plataforma.** Según `docs/sprint-3/03-analisis-graficas.md`, `fetchTDDVisualizationData` pide `tdd_log.json` directamente a GitHub y `/TDDCycles/commits-history` y `/TDDCycles/commit-cycles` al servidor; las lecturas usan `main`. El documento identifica `TDDBoard`, `TDDLineChart` y `TDDCycleChart`: número de pruebas, cobertura, líneas modificadas y estados de ejecuciones. También informa una unión por posición y que `tdd_cycle` no lo produce el tracker actual. Esta descripción y las rutas deben verificarse en el código de plataforma disponible al implementar; no se observan en el presente repositorio.
+**PENDIENTE DE VALIDACIÓN — plataforma.** Según `03-analisis-graficas.md`, `fetchTDDVisualizationData` pide `tdd_log.json` directamente a GitHub y `/TDDCycles/commits-history` y `/TDDCycles/commit-cycles` al servidor; las lecturas usan `main`. El documento identifica `TDDBoard`, `TDDLineChart` y `TDDCycleChart`: número de pruebas, cobertura, líneas modificadas y estados de ejecuciones. También informa una unión por posición y que `tdd_cycle` no lo produce el tracker actual. Esta descripción y las rutas deben verificarse en el código de plataforma disponible al implementar; no se observan en el presente repositorio.
 
 ## 5. Necesidades para soportar ramas Git
 
@@ -172,7 +172,7 @@ erDiagram
 
 ## 8. Propuesta de endpoints REST
 
-**ESTADO ACTUAL / PENDIENTE DE VALIDACIÓN:** no hay endpoints en este repositorio. `docs/sprint-3/03-analisis-graficas.md` atribuye `/TDDCycles/commits-history`, `/TDDCycles/commit-cycles` y `/TDDCycles/commit-timeline` a la plataforma; sus contratos, permisos y consumidores requieren comprobación directa. Las rutas siguientes son propuestas, no existentes.
+**ESTADO ACTUAL / PENDIENTE DE VALIDACIÓN:** no hay endpoints en este repositorio. `03-analisis-graficas.md` atribuye `/TDDCycles/commits-history`, `/TDDCycles/commit-cycles` y `/TDDCycles/commit-timeline` a la plataforma; sus contratos, permisos y consumidores requieren comprobación directa. Las rutas siguientes son propuestas, no existentes.
 
 ### Etapa 1 — fotografía Git
 
